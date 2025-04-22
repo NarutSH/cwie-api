@@ -15,6 +15,8 @@ enum UserRole {
   teacher
   company
   admin
+  staff
+  superadmin
 }
 
 model User {
@@ -24,9 +26,45 @@ model User {
   password      String
   firstname     String
   lastname      String
-  role          UserRole @default(student)
+  role          UserRole  @default(student)
   refreshToken  String?
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  departments   UserDepartment[]
+}
+
+model Faculty {
+  id          String       @id @default(cuid()) @db.VarChar(36)
+  name        String       @unique
+  code        String       @unique
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  departments Department[]
+}
+
+model Department {
+  id          String    @id @default(cuid()) @db.VarChar(36)
+  name        String    @unique
+  code        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  facultyId   String
+  faculty     Faculty   @relation(fields: [facultyId], references: [id])
+  users       UserDepartment[]
+}
+
+// Junction table for many-to-many relationship between User and Department
+model UserDepartment {
+  userId       String
+  departmentId String
+  user         User       @relation(fields: [userId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@id([userId, departmentId])
 }

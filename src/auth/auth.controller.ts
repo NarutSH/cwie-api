@@ -21,7 +21,6 @@ import { Request } from 'express';
 import { UserResult, UserService } from '../user/user.service';
 import { AuthService, Tokens } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
@@ -42,24 +41,9 @@ export class AuthController {
     private userService: UserService,
   ) {}
 
-  @Post('register')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'User registration successful',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'Email or username already taken',
-  })
-  register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
-
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Authenticate a user and get tokens' })
+  @ApiOperation({ summary: 'Authenticate a user with LDAP and get tokens' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'User login successful',

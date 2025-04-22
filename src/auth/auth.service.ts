@@ -10,15 +10,25 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { compare, hash } from 'bcrypt';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { User } from '@prisma/client';
 import { UserService } from '../user/user.service';
+import axios from 'axios';
+import * as https from 'https';
 
 // Define token response
 export interface Tokens {
   accessToken: string;
   refreshToken: string;
+}
+
+// LDAP API response interface
+interface LDAPUserResponse {
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  faculty: string;
 }
 
 // Define user result type (excluding sensitive fields)
@@ -37,6 +47,8 @@ export class AuthService {
   private readonly SALT_ROUNDS = 10;
   private readonly ACCESS_TOKEN_EXPIRY = '30m';
   private readonly REFRESH_TOKEN_EXPIRY = '7d';
+  private readonly LDAP_API_URL =
+    'https://eng.buu.ac.th/internship/intern-api/login/';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,44 +57,53 @@ export class AuthService {
   ) {}
 
   // User authentication methods
-  async register(
-    registerDto: RegisterDto,
-  ): Promise<{ user: UserResult } & Tokens> {
-    try {
-      await this.validateUniqueUser(registerDto.email, registerDto.username);
-
-      const hashedPassword = await this.hashData(registerDto.password);
-
-      const newUser = await this.prisma.user.create({
-        data: {
-          ...registerDto,
-          password: hashedPassword,
-        },
-      });
-
-      const tokens = this.getTokens(newUser.id, newUser.username);
-      await this.updateRefreshToken(newUser.id, tokens.refreshToken);
-
-      return {
-        user: this.excludeSensitiveData(newUser),
-        ...tokens,
-      };
-    } catch (err: unknown) {
-      this.handleAuthError(err, 'Registration failed');
-    }
-  }
-
   async login(loginDto: LoginDto): Promise<{ user: UserResult } & Tokens> {
     try {
-      const user = await this.findUserByUsernameOrEmail(
-        loginDto.usernameOrEmail,
+      // Convert password to UTF-8 encoded hex
+      const hexPassword = Buffer.from(loginDto.password, 'utf8').toString(
+        'hex',
       );
 
-      if (!user || !user.isActive) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
+      // Call LDAP API
+      const ldapResponse = await this.callLDAPApi(
+        loginDto.usernameOrEmail,
+        hexPassword,
+      );
 
-      await this.verifyPassword(loginDto.password, user.password);
+      console.log('ldapResponse', ldapResponse);
+
+      // Check if user exists in our database
+      let user = await this.prisma.user.findFirst({
+        where: { username: ldapResponse.username },
+      });
+
+      // If user doesn't exist, create a new user
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            username: ldapResponse.username,
+            email: ldapResponse.email,
+            firstname: ldapResponse.first_name,
+            lastname: ldapResponse.last_name,
+            // We don't store the actual password since authentication is handled by LDAP
+            password: await this.hashData(
+              'placeholder-password-ldap-auth-only',
+            ),
+            isActive: true,
+          },
+        });
+      } else {
+        // Update user info from LDAP if user already exists
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: ldapResponse.email,
+            firstname: ldapResponse.first_name,
+            lastname: ldapResponse.last_name,
+            isActive: true,
+          },
+        });
+      }
 
       const tokens = this.getTokens(user.id, user.username);
       await this.updateRefreshToken(user.id, tokens.refreshToken);
@@ -93,6 +114,36 @@ export class AuthService {
       };
     } catch (err: unknown) {
       this.handleAuthError(err, 'Login failed');
+    }
+  }
+
+  // Helper method to call LDAP API
+  private async callLDAPApi(
+    username: string,
+    hexPassword: string,
+  ): Promise<LDAPUserResponse> {
+    try {
+      const response = await axios.get(`${this.LDAP_API_URL}`, {
+        params: {
+          username,
+          password: hexPassword,
+        },
+        // Ignore certificate validation
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
+        }),
+      });
+
+      if (!response.data || !response.data.username) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      return response.data as LDAPUserResponse;
+    } catch (error) {
+      this.logger.error(
+        `LDAP authentication failed: ${this.formatErrorMessage(error)}`,
+      );
+      throw new UnauthorizedException('LDAP authentication failed');
     }
   }
 
@@ -188,23 +239,6 @@ export class AuthService {
     return user;
   }
 
-  private async validateUniqueUser(
-    email: string,
-    username: string,
-  ): Promise<void> {
-    const existingUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username }],
-      },
-    });
-
-    if (existingUser) {
-      throw new ConflictException(
-        'User with this email or username already exists',
-      );
-    }
-  }
-
   // Security and password related methods
   private async hashData(data: string): Promise<string> {
     try {
@@ -215,32 +249,6 @@ export class AuthService {
         `Password hashing failed: ${this.formatErrorMessage(err)}`,
       );
       throw new InternalServerErrorException('Password hashing failed');
-    }
-  }
-
-  private async verifyPassword(
-    plainPassword: string,
-    hashedPassword: string,
-  ): Promise<void> {
-    try {
-      const bcryptCompare = compare as CompareFunction;
-      const passwordMatches = await bcryptCompare(
-        plainPassword,
-        hashedPassword,
-      );
-
-      if (!passwordMatches) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-    } catch (err: unknown) {
-      if (err instanceof UnauthorizedException) {
-        throw err;
-      }
-
-      this.logger.error(
-        `Password comparison failed: ${this.formatErrorMessage(err)}`,
-      );
-      throw new UnauthorizedException('Invalid credentials');
     }
   }
 
