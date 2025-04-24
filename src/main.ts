@@ -11,8 +11,16 @@ async function bootstrap() {
   // Security
   app.use(
     helmet({
-      contentSecurityPolicy:
-        process.env.NODE_ENV === 'production' ? undefined : false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          styleSrc: [`'self'`, `'unsafe-inline'`],
+          scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
+          imgSrc: [`'self'`, 'data:'],
+        },
+      },
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: { policy: 'unsafe-none' },
     }),
   );
 
@@ -21,8 +29,15 @@ async function bootstrap() {
     origin: process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(',')
       : ['http://localhost:3000', 'http://128.199.120.72'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
+    allowedHeaders: [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+    ],
   });
 
   // Cookie parser
@@ -52,22 +67,32 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
+
+  // Create custom Swagger UI setup with HTTP URLs for resources
+  const customOptions = {
     swaggerOptions: {
       persistAuthorization: true,
       withCredentials: true,
       displayRequestDuration: true,
-      // Adjust Swagger UI to use HTTP when accessing via IP address
-      url:
-        process.env.NODE_ENV === 'production'
-          ? '/api' // Use relative path in production
-          : undefined,
     },
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'CWIE API Documentation',
+    customfavIcon: '/docs/favicon-32x32.png',
+  };
+
+  SwaggerModule.setup('docs', app, document, customOptions);
+
+  // This custom handler ensures all Swagger UI assets are served over HTTP
+  app.use('/docs', (req, res, next) => {
+    if (req.url.includes('swagger-ui')) {
+      res.set('Content-Security-Policy', 'upgrade-insecure-requests;');
+    }
+    next();
   });
 
   // Start server
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Application is running on: http://localhost:${port}/api`);
   console.log(`API Documentation available at: http://localhost:${port}/docs`);
 }
