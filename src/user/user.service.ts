@@ -35,6 +35,41 @@ export class UserService {
     }
   }
 
+  async getUsers() {
+    try {
+      const users = await this.prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstname: true,
+          lastname: true,
+          role: true,
+          isActive: true,
+          departments: {
+            select: {
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Transform the result to flatten the departments data
+      return users.map((user) => ({
+        ...user,
+        departments: user.departments.map((ud) => ud.department),
+      }));
+    } catch (err: unknown) {
+      this.handleUserError(err, 'Failed to fetch users');
+    }
+  }
+
   async updateUser(
     userId: string,
     updateUserDto: UpdateUserDto,

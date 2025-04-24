@@ -15,7 +15,12 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000', 'http://128.199.120.72:3000'],
+      : [
+          'http://localhost:3000',
+          'http://localhost:8000',
+          'http://128.199.120.72:3000',
+          'https://cwie-buu.netlify.app',
+        ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
@@ -52,8 +57,8 @@ async function bootstrap() {
   // }
 
   // Start server
-  const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0');
+  const port = process.env.PORT || 8000;
+  await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api`);
   console.log(`API Documentation available at: http://localhost:${port}/docs`);
 }

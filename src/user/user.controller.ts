@@ -26,6 +26,11 @@ interface RequestWithUser extends Request {
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get()
+  async getUsers() {
+    return this.userService.getUsers();
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Req() req: RequestWithUser): Promise<UserResult> {

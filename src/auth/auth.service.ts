@@ -66,7 +66,7 @@ export class AuthService {
 
       // Call LDAP API
       const ldapResponse = await this.callLDAPApi(
-        loginDto.usernameOrEmail,
+        loginDto.username,
         hexPassword,
       );
 
@@ -221,23 +221,6 @@ export class AuthService {
       );
       throw new InternalServerErrorException('Failed to update refresh token');
     }
-  }
-
-  // Helper methods for user operations
-  private async findUserByUsernameOrEmail(
-    usernameOrEmail: string,
-  ): Promise<User> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
   }
 
   // Security and password related methods
