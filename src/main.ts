@@ -21,12 +21,8 @@ async function bootstrap() {
           'http://128.199.120.72:3000',
           'https://cwie-buu.netlify.app',
         ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    exposedHeaders: ['Authorization'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
   });
 
   // Cookie parser
