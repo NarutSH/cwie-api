@@ -39,17 +39,17 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Swagger API documentation
-  if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('CWIE API')
-      .setDescription('Cooperative Work Integrated Education API documentation')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
+  // if (process.env.NODE_ENV !== 'production') {
+  const config = new DocumentBuilder()
+    .setTitle('CWIE API')
+    .setDescription('Cooperative Work Integrated Education API documentation')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('docs', app, document);
-  }
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
+  // }
 
   // Start server
   const port = process.env.PORT || 3000;
