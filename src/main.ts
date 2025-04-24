@@ -9,13 +9,18 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Security
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
+    }),
+  );
 
   // CORS Configuration
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(',')
-      : 'http://localhost:3000',
+      : ['http://localhost:3000', 'http://128.199.120.72'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
@@ -39,7 +44,6 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Swagger API documentation
-  // if (process.env.NODE_ENV !== 'production') {
   const config = new DocumentBuilder()
     .setTitle('CWIE API')
     .setDescription('Cooperative Work Integrated Education API documentation')
@@ -48,8 +52,18 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
-  // }
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      withCredentials: true,
+      displayRequestDuration: true,
+      // Adjust Swagger UI to use HTTP when accessing via IP address
+      url:
+        process.env.NODE_ENV === 'production'
+          ? '/api' // Use relative path in production
+          : undefined,
+    },
+  });
 
   // Start server
   const port = process.env.PORT || 3000;
