@@ -21,7 +21,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Department, User } from '@prisma/client';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
+import { DepartmentSchema } from './dto/department.schema';
 
+@ApiTags('Department')
 @Controller('department')
 export class DepartmentController {
   private readonly logger = new Logger(DepartmentController.name);
@@ -31,6 +41,32 @@ export class DepartmentController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'superadmin', 'teacher', 'staff')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new department' })
+  @ApiBody({ type: CreateDepartmentDto })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'The department has been successfully created.',
+    type: DepartmentSchema,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description:
+      'Invalid input or department with this name/code already exists.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Faculty not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description:
+      'Forbidden resource - insufficient permissions to create in this faculty.',
+  })
   async create(
     @Body() createDepartmentDto: CreateDepartmentDto,
     @Request() req,
@@ -57,6 +93,16 @@ export class DepartmentController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all departments' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of all departments',
+    type: [DepartmentSchema],
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
+  })
   async findAll(): Promise<Department[]> {
     try {
       const departments = await this.departmentService.findAll();
@@ -71,6 +117,21 @@ export class DepartmentController {
   }
 
   @Get('faculty/:facultyId')
+  @ApiOperation({ summary: 'Get departments by faculty ID' })
+  @ApiParam({ name: 'facultyId', description: 'Faculty ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of departments in the faculty',
+    type: [DepartmentSchema],
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Faculty not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
+  })
   async findByFaculty(
     @Param('facultyId') facultyId: string,
   ): Promise<Department[]> {
@@ -94,6 +155,21 @@ export class DepartmentController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a department by ID' })
+  @ApiParam({ name: 'id', description: 'Department ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The department has been found',
+    type: DepartmentSchema,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Department not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
+  })
   async findOne(@Param('id') id: string): Promise<Department> {
     try {
       const department = await this.departmentService.findOne(id);
@@ -113,6 +189,33 @@ export class DepartmentController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'superadmin', 'teacher', 'staff')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a department' })
+  @ApiParam({ name: 'id', description: 'Department ID' })
+  @ApiBody({ type: UpdateDepartmentDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The department has been successfully updated.',
+    type: DepartmentSchema,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Department not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description:
+      'Invalid input or department with this name/code already exists.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description:
+      'Forbidden resource - insufficient permissions to modify this department.',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
@@ -143,6 +246,31 @@ export class DepartmentController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'superadmin', 'teacher', 'staff')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a department' })
+  @ApiParam({ name: 'id', description: 'Department ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The department has been successfully deleted.',
+    type: DepartmentSchema,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Department not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Cannot delete department with associated users.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description:
+      'Forbidden resource - insufficient permissions to delete this department.',
+  })
   async remove(@Param('id') id: string, @Request() req): Promise<Department> {
     try {
       const deletedDepartment = await this.departmentService.remove(

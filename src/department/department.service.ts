@@ -156,7 +156,7 @@ export class DepartmentService {
         where: { id },
         data: updateDepartmentDto,
       });
-      return updatedDepartment as Department;
+      return updatedDepartment;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -202,7 +202,7 @@ export class DepartmentService {
       const deletedDepartment = await this.prisma.department.delete({
         where: { id },
       });
-      return deletedDepartment as Department;
+      return deletedDepartment;
     } catch (error) {
       if (
         error instanceof NotFoundException ||

@@ -1,20 +1,20 @@
 import {
-  Injectable,
-  UnauthorizedException,
   ConflictException,
   ForbiddenException,
-  NotFoundException,
+  Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
-import { compare, hash } from 'bcrypt';
-import { LoginDto } from './dto/login.dto';
-import { User } from '@prisma/client';
-import { UserService } from '../user/user.service';
+import { User, UserRole } from '@prisma/client';
 import axios from 'axios';
+import { compare, hash } from 'bcrypt';
 import * as https from 'https';
+import { PrismaService } from '../prisma/prisma.service';
+import { UserService } from '../user/user.service';
+import { LoginDto } from './dto/login.dto';
 
 // Define token response
 export interface Tokens {
@@ -70,8 +70,6 @@ export class AuthService {
         hexPassword,
       );
 
-      console.log('ldapResponse', ldapResponse);
-
       // Check if user exists in our database
       let user = await this.prisma.user.findFirst({
         where: { username: ldapResponse.username },
@@ -85,6 +83,9 @@ export class AuthService {
             email: ldapResponse.email,
             firstname: ldapResponse.first_name,
             lastname: ldapResponse.last_name,
+            role: Number(ldapResponse.username)
+              ? UserRole.student
+              : UserRole.staff,
             // We don't store the actual password since authentication is handled by LDAP
             password: await this.hashData(
               'placeholder-password-ldap-auth-only',
