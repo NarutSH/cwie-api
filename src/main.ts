@@ -20,7 +20,6 @@ async function bootstrap() {
           'http://localhost:8000',
           'http://128.199.120.72:3000',
           'https://cwie-buu.netlify.app',
-          'https://cwie-api.duckdns.org',
         ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
