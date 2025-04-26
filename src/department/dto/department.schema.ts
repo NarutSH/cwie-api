@@ -10,9 +10,15 @@ export class DepartmentSchema {
 
   @ApiProperty({
     example: 'Computer Engineering',
-    description: 'Full name of the department',
+    description: 'English name of the department',
   })
-  name: string;
+  name_en: string;
+
+  @ApiProperty({
+    example: 'วิศวกรรมคอมพิวเตอร์',
+    description: 'Thai name of the department',
+  })
+  name_th: string;
 
   @ApiProperty({
     example: 'CPE',

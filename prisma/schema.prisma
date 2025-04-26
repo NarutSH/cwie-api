@@ -19,52 +19,101 @@ enum UserRole {
   superadmin
 }
 
+enum PublishStatus {
+  draft
+  published
+  rejected
+}
+
 model User {
-  id            String    @id @default(cuid()) @db.VarChar(36)
-  email         String    @unique
-  username      String    @unique
-  password      String
-  firstname     String
-  lastname      String
-  role          UserRole  @default(student)
-  refreshToken  String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  departments   UserDepartment[]
+  id           String           @id @default(cuid()) @db.VarChar(36)
+  email        String           @unique
+  username     String           @unique
+  password     String
+  firstname    String
+  lastname     String
+  role         UserRole         @default(student)
+  refreshToken String?
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  departments  Department[]     // Implicit many-to-many
+  companies    Company[]        @relation("CreatedByUser")
 }
 
 model Faculty {
-  id          String       @id @default(cuid()) @db.VarChar(36)
-  name        String       @unique
-  code        String       @unique
+  id          String           @id @default(cuid()) @db.VarChar(36)
+  name_en        String           @unique
+  name_th     String
+  code        String           @unique
   description String?
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   departments Department[]
+  companies   Company[]
 }
 
 model Department {
-  id          String    @id @default(cuid()) @db.VarChar(36)
-  name        String    @unique
-  code        String    @unique
+  id          String              @id @default(cuid()) @db.VarChar(36)
+  name_en     String              @unique
+  name_th     String
+  code        String              @unique
   description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
   facultyId   String
-  faculty     Faculty   @relation(fields: [facultyId], references: [id])
-  users       UserDepartment[]
+  faculty     Faculty             @relation(fields: [facultyId], references: [id])
+  users       User[]              // Implicit many-to-many
+  companies   Company[]           // Implicit many-to-many
 }
 
-// Junction table for many-to-many relationship between User and Department
-model UserDepartment {
-  userId       String
-  departmentId String
-  user         User       @relation(fields: [userId], references: [id])
-  department   Department @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime   @default(now())
+model Industry {
+  id        String    @id @default(cuid()) @db.VarChar(36)
+  name_th   String    @unique
+  name_en   String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  companies Company[]
+}
 
-  @@id([userId, departmentId])
+model Company {
+  id           String              @id @default(cuid()) @db.VarChar(36)
+  name_th      String              @unique
+  name_en      String              @unique
+  address      String
+  sub_district String
+  district     String
+  province     String
+  postcode     String
+  latitude     Float?
+  longitude    Float?
+  email        String?
+  phone        String?
+  industryId   String?
+  industry     Industry?            @relation(fields: [industryId], references: [id])
+  faculties    Faculty[]            // Implicit many-to-many
+  departments  Department[]         // Implicit many-to-many
+  status       PublishStatus        @default(draft)
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  createdById  String?
+  createdBy    User?                @relation("CreatedByUser", fields: [createdById], references: [id])
+  contactList  ContactList[]
+}
+
+model ContactList {
+  id        String   @id @default(cuid()) @db.VarChar(36)
+  firstname String
+  lastname  String
+  email     String
+  phone     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
 }

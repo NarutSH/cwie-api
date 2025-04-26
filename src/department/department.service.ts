@@ -35,7 +35,13 @@ export class DepartmentService {
       await this.checkFacultyPermission(user, createDepartmentDto.facultyId);
 
       const department = await this.prisma.department.create({
-        data: createDepartmentDto,
+        data: {
+          name_th: createDepartmentDto.name_th,
+          name_en: createDepartmentDto.name_en,
+          code: createDepartmentDto.code,
+          description: createDepartmentDto.description,
+          facultyId: createDepartmentDto.facultyId,
+        },
       });
       return department;
     } catch (error) {
@@ -49,7 +55,9 @@ export class DepartmentService {
       // Handle unique constraint violations
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new Error(`Department with this name or code already exists`);
+          throw new Error(
+            `Department with this name_th, name_en or code already exists`,
+          );
         }
       }
 
@@ -154,7 +162,13 @@ export class DepartmentService {
 
       const updatedDepartment = await this.prisma.department.update({
         where: { id },
-        data: updateDepartmentDto,
+        data: {
+          name_th: updateDepartmentDto.name_th,
+          name_en: updateDepartmentDto.name_en,
+          code: updateDepartmentDto.code,
+          description: updateDepartmentDto.description,
+          isActive: updateDepartmentDto.isActive,
+        },
       });
       return updatedDepartment;
     } catch (error) {
@@ -168,7 +182,9 @@ export class DepartmentService {
       // Handle unique constraint violations
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new Error(`Department with this name or code already exists`);
+          throw new Error(
+            `Department with this name_th, name_en or code already exists`,
+          );
         }
       }
 
