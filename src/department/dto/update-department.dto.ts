@@ -4,12 +4,21 @@ import { ApiProperty } from '@nestjs/swagger';
 export class UpdateDepartmentDto {
   @ApiProperty({
     example: 'Updated Computer Engineering',
-    description: 'The updated name of the department',
+    description: 'The updated English name of the department',
     required: false,
   })
   @IsOptional()
   @IsString()
-  name?: string;
+  name_en?: string;
+
+  @ApiProperty({
+    example: 'วิศวกรรมคอมพิวเตอร์ (ปรับปรุง)',
+    description: 'The updated Thai name of the department',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  name_th?: string;
 
   @ApiProperty({
     example: 'UCPE',

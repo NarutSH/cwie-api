@@ -13,13 +13,20 @@ export class FacultyService {
   async create(createFacultyDto: CreateFacultyDto): Promise<Faculty> {
     try {
       const faculty = await this.prisma.faculty.create({
-        data: createFacultyDto,
+        data: {
+          name_th: createFacultyDto.name_th,
+          name_en: createFacultyDto.name_en,
+          code: createFacultyDto.code,
+          description: createFacultyDto.description,
+        },
       });
       return faculty;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new Error(`Faculty with this name or code already exists`);
+          throw new Error(
+            `Faculty with this name_th, name_en or code already exists`,
+          );
         }
       }
       this.logger.error(`Failed to create faculty: ${error.message}`);
@@ -62,7 +69,12 @@ export class FacultyService {
       // Then update
       const updatedFaculty = await this.prisma.faculty.update({
         where: { id },
-        data: updateFacultyDto,
+        data: {
+          name_th: updateFacultyDto.name_th,
+          name_en: updateFacultyDto.name_en,
+          code: updateFacultyDto.code,
+          description: updateFacultyDto.description,
+        },
       });
       return updatedFaculty;
     } catch (error) {
@@ -74,7 +86,9 @@ export class FacultyService {
       // Handle unique constraint violations
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new Error(`Faculty with this name or code already exists`);
+          throw new Error(
+            `Faculty with this name_th, name_en or code already exists`,
+          );
         }
       }
 

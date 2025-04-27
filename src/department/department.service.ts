@@ -35,7 +35,13 @@ export class DepartmentService {
       await this.checkFacultyPermission(user, createDepartmentDto.facultyId);
 
       const department = await this.prisma.department.create({
-        data: createDepartmentDto,
+        data: {
+          name_th: createDepartmentDto.name_th,
+          name_en: createDepartmentDto.name_en,
+          code: createDepartmentDto.code,
+          description: createDepartmentDto.description,
+          facultyId: createDepartmentDto.facultyId,
+        },
       });
       return department;
     } catch (error) {
@@ -49,7 +55,9 @@ export class DepartmentService {
       // Handle unique constraint violations
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new Error(`Department with this name or code already exists`);
+          throw new Error(
+            `Department with this name_th, name_en or code already exists`,
+          );
         }
       }
 
@@ -60,16 +68,12 @@ export class DepartmentService {
 
   async findAll(): Promise<Department[]> {
     try {
-      const departments = (await this.prisma.department.findMany({
+      const departments = await this.prisma.department.findMany({
         include: {
           faculty: true,
-          users: {
-            include: {
-              user: true,
-            },
-          },
+          users: true,
         },
-      })) as Department[];
+      });
       return departments;
     } catch (error) {
       this.logger.error(`Failed to find departments: ${error.message}`);
@@ -88,16 +92,14 @@ export class DepartmentService {
         throw new NotFoundException(`Faculty with ID ${facultyId} not found`);
       }
 
-      const departments = (await this.prisma.department.findMany({
+      const departments = await this.prisma.department.findMany({
         where: { facultyId },
         include: {
-          users: {
-            include: {
-              user: true,
-            },
-          },
+          faculty: true,
+          users: true,
         },
-      })) as Department[];
+      });
+
       return departments;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -116,11 +118,7 @@ export class DepartmentService {
         where: { id },
         include: {
           faculty: true,
-          users: {
-            include: {
-              user: true,
-            },
-          },
+          users: true,
         },
       });
 
@@ -128,7 +126,7 @@ export class DepartmentService {
         throw new NotFoundException(`Department with ID ${id} not found`);
       }
 
-      return department as Department;
+      return department;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -154,7 +152,13 @@ export class DepartmentService {
 
       const updatedDepartment = await this.prisma.department.update({
         where: { id },
-        data: updateDepartmentDto,
+        data: {
+          name_th: updateDepartmentDto.name_th,
+          name_en: updateDepartmentDto.name_en,
+          code: updateDepartmentDto.code,
+          description: updateDepartmentDto.description,
+          isActive: updateDepartmentDto.isActive,
+        },
       });
       return updatedDepartment;
     } catch (error) {
@@ -168,7 +172,9 @@ export class DepartmentService {
       // Handle unique constraint violations
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new Error(`Department with this name or code already exists`);
+          throw new Error(
+            `Department with this name_th, name_en or code already exists`,
+          );
         }
       }
 
@@ -187,12 +193,15 @@ export class DepartmentService {
         await this.checkFacultyPermission(user, department.facultyId);
       }
 
-      // Check if department has associated users
-      const userDepartments = await this.prisma.userDepartment.findMany({
-        where: { departmentId: id },
+      // Check if department has associated users using the new implicit many-to-many relationship
+      const departmentWithUsers = await this.prisma.department.findUnique({
+        where: { id },
+        include: {
+          users: true,
+        },
       });
 
-      if (userDepartments.length > 0) {
+      if (departmentWithUsers?.users && departmentWithUsers.users.length > 0) {
         throw new Error(
           `Cannot delete department with ID ${id} because it has associated users`,
         );
@@ -232,17 +241,17 @@ export class DepartmentService {
 
       // Check if user is teacher and is associated with this faculty
       if (user.role === 'teacher') {
-        // Find if user is associated with any department in this faculty
-        const userDepartments = await this.prisma.userDepartment.findMany({
-          where: {
-            userId: user.id,
-            department: {
-              facultyId,
+        // Find if user is associated with any department in this faculty using the implicit many-to-many relationship
+        const userWithDepartments = await this.prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            departments: {
+              where: { facultyId },
             },
           },
         });
 
-        if (userDepartments.length === 0) {
+        if (!userWithDepartments?.departments?.length) {
           throw new ForbiddenException(
             'You do not have permission to manage departments in this faculty',
           );
