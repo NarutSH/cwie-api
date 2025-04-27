@@ -43,7 +43,7 @@ model User {
 
 model Faculty {
   id          String           @id @default(cuid()) @db.VarChar(36)
-  name_en        String           @unique
+  name_en     String           @unique
   name_th     String
   code        String           @unique
   description String?
