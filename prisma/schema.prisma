@@ -25,6 +25,14 @@ enum PublishStatus {
   rejected
 }
 
+enum PaymentType {
+  hour
+  day
+  week
+  month
+  finish
+}
+
 model User {
   id           String           @id @default(cuid()) @db.VarChar(36)
   email        String           @unique
@@ -39,6 +47,7 @@ model User {
   updatedAt    DateTime         @updatedAt
   departments  Department[]     // Implicit many-to-many
   companies    Company[]        @relation("CreatedByUser")
+  jobs         Job[]            @relation("CreatedByUser")
 }
 
 model Faculty {
@@ -52,6 +61,7 @@ model Faculty {
   updatedAt   DateTime         @updatedAt
   departments Department[]
   companies   Company[]
+  jobs        Job[]            // Relation with Job model
 }
 
 model Department {
@@ -67,6 +77,7 @@ model Department {
   faculty     Faculty             @relation(fields: [facultyId], references: [id])
   users       User[]              // Implicit many-to-many
   companies   Company[]           // Implicit many-to-many
+  jobs        Job[]               // Relation with Job model
 }
 
 model Industry {
@@ -103,6 +114,7 @@ model Company {
   createdById  String?
   createdBy    User?                @relation("CreatedByUser", fields: [createdById], references: [id])
   contactList  ContactList[]
+  jobs         Job[]                // Company has many jobs
 }
 
 model ContactList {
@@ -116,4 +128,44 @@ model ContactList {
   updatedAt DateTime @updatedAt
   companyId String
   company   Company  @relation(fields: [companyId], references: [id])
+}
+
+model InternshipType {
+  id        String   @id @default(cuid()) @db.VarChar(36)
+  name_th   String   @unique
+  name_en   String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  jobs      Job[]
+}
+
+model Job {
+  id              String         @id @default(cuid()) @db.VarChar(36)
+  name_th         String
+  name_en         String
+  description     String?
+  requirement     String?
+  payment         Float?
+  payment_type    PaymentType?
+  start_date      DateTime
+  end_date        DateTime
+  position_count  Int            @default(1)
+  status          PublishStatus  @default(draft)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Relations
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id])
+  
+  internshipTypeId String
+  internshipType   InternshipType @relation(fields: [internshipTypeId], references: [id])
+  
+  faculties       Faculty[]      // Implicit many-to-many
+  departments     Department[]   // Implicit many-to-many
+  
+  createdById     String?
+  createdBy       User?          @relation("CreatedByUser", fields: [createdById], references: [id])
 }

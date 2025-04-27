@@ -10,6 +10,8 @@ import { FacultyModule } from './faculty/faculty.module';
 import { DepartmentModule } from './department/department.module';
 import { CompanyModule } from './company/company.module';
 import { IndustryModule } from './industry/industry.module';
+import { JobModule } from './job/job.module';
+import { InternshipTypeModule } from './internship-type/internship-type.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { IndustryModule } from './industry/industry.module';
     DepartmentModule,
     CompanyModule,
     IndustryModule,
+    JobModule,
+    InternshipTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
